@@ -60,7 +60,13 @@ sysinfo.txt
 *.aab
 *.unitypackage
 *.app
+# Upewnij się, że sceny Unity są dozwolone
+!*.unity
+!*.unity.meta
 
+# Jeśli twoje sceny są w podfolderach, upewnij się, że foldery nie są ignorowane
+!/[Aa]ssets/**/*.unity
+!/[Aa]ssets/**/*.meta
 # Allow Unity scenes
 !*.unity
 
