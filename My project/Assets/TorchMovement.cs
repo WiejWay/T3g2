@@ -19,10 +19,9 @@ public class TorchMovement : MonoBehaviour
     {
         if (velocity != Vector3.zero)
         {
-            // Aktualizacja czasu
             elapsedTime += Time.deltaTime;
 
-            // Obliczanie nowej pozycji
+            // Wyliczenie przemieszczenia (rzut ukośny)
             Vector3 displacement = new Vector3(
                 velocity.x * elapsedTime,
                 velocity.y * elapsedTime + 0.5f * gravity * Mathf.Pow(elapsedTime, 2),
@@ -31,7 +30,7 @@ public class TorchMovement : MonoBehaviour
 
             transform.position = startPosition + displacement;
 
-            // Wykrywanie kolizji z podłożem
+            // Wykrycie "podłoża" (wysokość <= 0)
             if (transform.position.y <= 0f)
             {
                 transform.position = new Vector3(transform.position.x, 0f, transform.position.z);
