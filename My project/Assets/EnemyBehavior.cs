@@ -2,61 +2,86 @@ using UnityEngine;
 
 public class EnemyBehavior : MonoBehaviour
 {
-    public enum EnemyReaction { MoveTowards, Flee } // Typ reakcji
-    public EnemyReaction reactionType; // Ustawiany typ reakcji
+    public enum EnemyMode { ChaseWhenLit, ChaseButFleeFromLight }
+    public EnemyMode enemyMode;
 
-    public float speed = 3f; // Prędkość ruchu
-    public float detectionRange = 5f; // Zasięg wykrywania pochodni
+    public float speed = 3f;
+    public float detectionRange = 5f;
+    public float fleeRange = 2f;
 
-    private GameObject torch; // Referencja do pochodni
+    private GameObject torch;
+    private GameObject player;
+    private Rigidbody rb;
+
+    void Start()
+    {
+        player = GameObject.FindWithTag("Player");
+        rb = GetComponent<Rigidbody>();
+        if (rb != null) rb.freezeRotation = true;
+
+        if (player == null) Debug.LogWarning("⚠️ Player (gracz) nie znaleziony! Ustaw tag 'Player'.");
+    }
 
     void Update()
     {
-        // Szukamy pochodni w scenie (lub można podać jej referencję)
+        // 🔥 SZUKAMY POCHODNI CO KAŻDĄ KLATKĘ (jeśli nie została znaleziona)
         if (torch == null)
         {
             torch = GameObject.FindWithTag("Torch");
+            if (torch != null) Debug.Log("🔦 Pochodnia znaleziona!");
         }
 
-        if (torch != null)
-        {
-            float distanceToTorch = Vector3.Distance(transform.position, torch.transform.position);
+        if (player == null) return;
 
-            if (distanceToTorch <= detectionRange)
+        float distanceToTorch = (torch != null) ? Vector3.Distance(transform.position, torch.transform.position) : Mathf.Infinity;
+        bool isInLight = (torch != null) && (distanceToTorch <= detectionRange);
+
+        if (enemyMode == EnemyMode.ChaseWhenLit)
+        {
+            if (isInLight)
             {
-                ReactToTorch(torch.transform.position);
+                Debug.Log("🔥 Wróg goni gracza, bo jest w świetle.");
+                MoveTowards(player.transform.position);
+            }
+        }
+        else if (enemyMode == EnemyMode.ChaseButFleeFromLight)
+        {
+            if (isInLight && distanceToTorch <= fleeRange)
+            {
+                Debug.Log("🏃 Wróg ucieka, bo dotknął światła!");
+                MoveAway(torch.transform.position);
+            }
+            else
+            {
+                Debug.Log("👀 Wróg goni gracza.");
+                MoveTowards(player.transform.position);
             }
         }
     }
 
-    void ReactToTorch(Vector3 torchPosition)
+    void MoveTowards(Vector3 target)
     {
-        // Kierunek ruchu zależny od reakcji
-        Vector3 direction;
-
-        if (reactionType == EnemyReaction.MoveTowards)
-        {
-            // Ruch w stronę pochodni
-            direction = (torchPosition - transform.position).normalized;
-        }
-        else if (reactionType == EnemyReaction.Flee)
-        {
-            // Ruch w przeciwnym kierunku
-            direction = (transform.position - torchPosition).normalized;
-        }
+        Vector3 direction = (target - transform.position).normalized;
+        if (rb != null)
+            rb.MovePosition(transform.position + direction * speed * Time.deltaTime);
         else
-        {
-            return; // Brak reakcji
-        }
+            transform.position += direction * speed * Time.deltaTime;
+    }
 
-        // Aktualizacja pozycji wroga
-        transform.position += direction * speed * Time.deltaTime;
+    void MoveAway(Vector3 target)
+    {
+        Vector3 direction = (transform.position - target).normalized;
+        if (rb != null)
+            rb.MovePosition(transform.position + direction * speed * Time.deltaTime);
+        else
+            transform.position += direction * speed * Time.deltaTime;
     }
 
     private void OnDrawGizmosSelected()
     {
-        // Rysowanie zasięgu wykrywania w edytorze
-        Gizmos.color = Color.red;
+        Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, fleeRange);
     }
 }
