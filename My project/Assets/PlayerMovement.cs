@@ -9,6 +9,7 @@ public class PlayerMovement : MonoBehaviour
     public float verticalClimbSpeed = 3f; // Prędkość wspinania się w górę
     public LayerMask groundLayer; // Warstwa dla podłoża
 
+    private Animator animator;
     private Rigidbody2D rb;
     private bool isGrounded; // Czy postać dotyka ziemi
     private bool canClimb; // Czy postać może się wspinać
@@ -16,6 +17,11 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
+        if (animator == null)
+        {
+            Debug.LogError("Nie znaleziono komponentu Animator!");
+        }
     }
 
     void Update()
@@ -39,6 +45,26 @@ public class PlayerMovement : MonoBehaviour
 
         // Sprawdzenie, czy postać stoi na ziemi
         isGrounded = CheckGrounded();
+
+        if (horizontal > 0)
+        {
+            // Ruch w prawo
+            animator.SetBool("MovingRight", true);
+            animator.SetBool("MovingLeft", false);
+        }
+        else if (horizontal < 0)
+        {
+            // Ruch w lewo
+            animator.SetBool("MovingRight", false);
+            animator.SetBool("MovingLeft", true);
+        }
+        else
+        {
+            // Postać stoi w miejscu
+            animator.SetBool("MovingRight", false);
+            animator.SetBool("MovingLeft", false);
+        }
+
     }
 
     private bool CheckGrounded()
