@@ -12,7 +12,7 @@ public class CheckpointTrigger : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            roomGenerator.ActivateCheckpointGUI();
+            // roomGenerator.ActivateCheckpointGUI();
             Debug.Log("Player entered checkpoint");
         }
     }
@@ -21,7 +21,7 @@ public class CheckpointTrigger : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            roomGenerator.DeactivateCheckpointGUI();
+            // roomGenerator.DeactivateCheckpointGUI();
             Debug.Log("Player exited checkpoint");
         }
     }

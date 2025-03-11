@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 6422990563864784843}
   - component: {fileID: 797926631283558004}
   - component: {fileID: 7441755605448994975}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Ground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140,6 +140,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4348908279635827448}
   - component: {fileID: 8463934677573015535}
+  - component: {fileID: 8816433592785708019}
   m_Layer: 0
   m_Name: EndPointHorizontal
   m_TagString: Untagged
@@ -214,6 +215,27 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!65 &8816433592785708019
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5478947123181616402}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.99999994, y: 1, z: 0.2}
+  m_Center: {x: 0, y: -0.00000047683716, z: 0}
 --- !u!1 &6540024420902326414
 GameObject:
   m_ObjectHideFlags: 0

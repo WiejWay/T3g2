@@ -1,47 +1,69 @@
 using UnityEngine;
+using UnityEngine.UI;  // Pamiętaj o dodaniu przestrzeni nazw dla UI
 
 public class TorchThrow : MonoBehaviour
 {
     [Header("Ustawienia pochodni")]
     [SerializeField] private GameObject torchPrefab;        // Prefab z Rigidbody2D
     [SerializeField] private Transform spawnPoint;          // Miejsce w ręce gracza (punkt startowy)
-    [SerializeField] private float throwForce = 10f;        // Siła rzutu pochodni
-    [SerializeField] private KeyCode throwKey = KeyCode.E;  // Klawisz do rzucania i przyciągania
+    [SerializeField] private float minThrowForce = 5f;        // Minimalna siła rzutu
+    [SerializeField] private float maxThrowForce = 20f;       // Maksymalna siła rzutu
+    [SerializeField] private float maxChargeTime = 2f;        // Czas ładowania by osiągnąć maxThrowForce
+    [SerializeField] private KeyCode throwKey = KeyCode.E;    // Klawisz do ładowania/rzutu oraz przyciągania
 
     [Header("Linia (wizualna)")]
-    [SerializeField] private LineRenderer lineRenderer;     // Do rysowania "linki" 
+    [SerializeField] private LineRenderer lineRenderer;       // Do rysowania "linki"
 
     [Header("Przyciąganie pochodni")]
-    [SerializeField] private float returnSpeed = 5f;        // Prędkość, z jaką wraca pochodnia
+    [SerializeField] private float returnSpeed = 5f;          // Bazowa prędkość przyciągania
+    [SerializeField] private float returnSpeedMultiplier = 3f;  // Współczynnik zwiększania prędkości – im dłużej leci, tym większa prędkość
 
     [Header("Trzymanie pochodni (PPM)")]
-    [SerializeField] private KeyCode torchHoldButton = KeyCode.Mouse1; // Prawy przycisk myszy
+    [SerializeField] private KeyCode torchHoldButton = KeyCode.Mouse1; // PPM
     [SerializeField] private Vector2 holdTorchOffset = new Vector2(1f, 0f); // Offset w prawo
 
-    // ========================================
-    //  ZMIENNE STANU
-    // ========================================
+    [Header("UI Slider")]
+    [SerializeField] private Slider throwSlider;              // Slider z Player > Canvas > Slider
 
-    private GameObject currentTorch;    // Aktualnie wyrzucona pochodnia
+    [Header("Player Movement")]
+    [SerializeField] private PlayerMovement playerMovementScript; // Referencja do skryptu ruchu gracza
+
+    // ========================================
+    // ZMIENNE STANU
+    // ========================================
+    private GameObject currentTorch;    // Aktualnie wyrzucona lub ładowana pochodnia
     private bool isReturning = false;   // Czy przyciągamy już pochodnię
 
-    private GameObject holdTorch;       // Pochodnia "w ręce" (po przytrzymaniu PPM)
+    private GameObject holdTorch;       // Pochodnia "w ręce" (przytrzymanie PPM)
+
+    // Zmienne związane z ładowaniem siły rzutu
+    private float chargeTimer = 0f;
+    private bool isCharging = false;
+    // Zmienna do rejestrowania czasu rzutu
+    private float throwTime = 0f;
 
     void Update()
     {
-        // 1) Trzymanie pochodni (PPM)
+        // 1) Obsługa trzymania pochodni (PPM)
         HandleRightMouseHold();
 
-        // 2) Rzut / przyciąganie pochodni (E)
+        // 2) Obsługa ładowania, rzutu oraz przyciągania pochodni (klawisz E)
         HandleTorchThrowAndReturn();
 
-        // 3) Rysowanie liny (wizualnie)
+        // 3) Aktualizacja wizualnej liny
         UpdateLineRenderer();
     }
 
     private void FixedUpdate()
     {
-        // Jeśli przyciągamy wyrzuconą pochodnię (drugie naciśnięcie E)
+        // Jeśli pochodnia jest ładowana, zatrzymaj gracza (ustawiamy canMove = false).
+        // Gdy nie ładuje, pozwól graczowi się poruszać.
+        if (playerMovementScript != null)
+        {
+            playerMovementScript.canMove = !isCharging;
+        }
+
+        // Jeśli przyciągamy wyrzuconą pochodnię
         if (isReturning && currentTorch != null)
         {
             Rigidbody2D torchRb = currentTorch.GetComponent<Rigidbody2D>();
@@ -52,64 +74,73 @@ public class TorchThrow : MonoBehaviour
 
                 if (distance < 0.2f)
                 {
-                    // Gdy jest blisko, niszczymy pochodnię
+                    // Gdy jest blisko, niszczymy pochodnię i przywracamy ruch gracza
                     Destroy(currentTorch);
                     currentTorch = null;
                     isReturning = false;
+                    if (playerMovementScript != null)
+                    {
+                        playerMovementScript.canMove = true;
+                    }
                 }
                 else
                 {
-                    // Przyciąganie - nadaj velocity w stronę gracza
+                    // Obliczamy dodatkowe zwiększenie prędkości na podstawie czasu lotu
+                    float flightDuration = Time.time - throwTime;
+                    float currentReturnSpeed = returnSpeed + returnSpeedMultiplier * flightDuration;
+
+                    // Przyciąganie – nadaj velocity w stronę gracza z dynamicznie zwiększoną prędkością
                     Vector2 pullDir = directionToPlayer.normalized;
-                    torchRb.velocity = pullDir * returnSpeed;
+                    torchRb.velocity = pullDir * currentReturnSpeed;
+
+                    // Wyłączenie kolizji w dziecku "Square" (jeśli istnieje)
+                    Transform squareTransform = currentTorch.transform.Find("Square");
+                    if (squareTransform != null)
+                    {
+                        BoxCollider2D squareCollider = squareTransform.GetComponent<BoxCollider2D>();
+                        if (squareCollider != null)
+                        {
+                            squareCollider.enabled = false;
+                        }
+                    }
                 }
             }
         }
     }
 
-    // ================================================================
-    //  METODY SZCZEGÓŁOWE
-    // ================================================================
-
-    // ------------------- A) Trzymanie pochodni w ręce przy PPM ------------------- //
+    // ------------------- A) Trzymanie pochodni w ręce (PPM) ------------------- //
     private void HandleRightMouseHold()
     {
-        // Jeśli wyrzuciłeś pochodnię (currentTorch != null), to nie możesz trzymać w ręce
-        // (i odwrotnie - jeśli trzymasz w ręce, nie możesz rzucić).
-        // Sprawdzamy tę zależność w logice poniżej.
-
-        // 1) Naciśnięcie PPM
+        // Naciśnięcie PPM – stworzenie wizualnej pochodni
         if (Input.GetKeyDown(torchHoldButton))
         {
-            // Jeśli już jest wyrzucona pochodnia, blokujemy trzymanie w ręce.
+            // Jeśli już jest wyrzucona (lub ładowana) pochodnia, blokujemy trzymanie
             if (currentTorch != null) return;
 
-            // Utwórz holdTorch, jeśli jeszcze go nie ma
             if (holdTorch == null)
             {
+                // Tworzymy pochodnię bez ustawiania jej jako dziecko gracza (rodzic = null)
                 holdTorch = Instantiate(torchPrefab, spawnPoint.position, Quaternion.identity);
-
+                holdTorch.transform.parent = null;
                 // Wyłącz fizykę i kolizje, bo chcemy tylko wizualnie trzymać
-                var rb = holdTorch.GetComponent<Rigidbody2D>();
+                Rigidbody2D rb = holdTorch.GetComponent<Rigidbody2D>();
                 if (rb != null) rb.isKinematic = true;
-
-                var col = holdTorch.GetComponent<Collider2D>();
+                Collider2D col = holdTorch.GetComponent<Collider2D>();
                 if (col != null) col.enabled = false;
             }
         }
 
-        // 2) Podczas trzymania PPM
+        // Podczas przytrzymania PPM – aktualizacja pozycji
         if (Input.GetKey(torchHoldButton))
         {
             if (holdTorch != null)
             {
-                // Aktualizujemy pozycję z offsetem w prawo (lub innym)
                 Vector2 basePos = spawnPoint.position;
                 holdTorch.transform.position = basePos + holdTorchOffset;
             }
         }
 
-        // 3) Puszczenie PPM => niszczymy holdTorch
+        // Puszczenie PPM – niszczenie wizualnej pochodni
         if (Input.GetKeyUp(torchHoldButton))
         {
             if (holdTorch != null)
@@ -120,60 +151,87 @@ public class TorchThrow : MonoBehaviour
         }
     }
 
-    // ------------------- B) Rzucanie pochodnią / przyciąganie klawiszem E ------------------- //
+    // ------------------- B) Ładowanie, rzut oraz przyciąganie pochodni (klawisz E) ------------------- //
     private void HandleTorchThrowAndReturn()
     {
-        // Gdy wciśniemy E
+        // Na początku ładowania (KeyDown)
         if (Input.GetKeyDown(throwKey))
         {
-            // Jeśli TRZYMAMY pochodnię w ręce, nie pozwól rzucić
-            if (holdTorch != null) return;
-
-            // A) jeśli nie ma wyrzuconej pochodni, to rzuć nową
-            if (currentTorch == null)
+            // Jeśli już jest wyrzucona pochodnia, zamiast ładowania wykonujemy przyciąganie
+            if (currentTorch != null)
             {
-                ThrowTorch();
+                // W tym momencie przytrzymanie E nie inicjuje ponownie ładowania
             }
             else
             {
-                // B) jeśli jest już wyrzucona, to zacznij ją przyciągać
+                // Tworzymy pochodnię już na początku ładowania – instancjujemy ją globalnie (parent = null)
+                currentTorch = Instantiate(torchPrefab, spawnPoint.position, Quaternion.identity);
+                currentTorch.transform.parent = null;
+                // Ustawiamy, że na czas ładowania pochodnia nie podlega fizyce
+                Rigidbody2D torchRb = currentTorch.GetComponent<Rigidbody2D>();
+                if (torchRb != null)
+                {
+                    torchRb.isKinematic = true;
+                }
+                // Rozpoczynamy ładowanie
+                isCharging = true;
+                chargeTimer = 0f;
+                if (throwSlider != null)
+                {
+                    throwSlider.value = 0f;
+                }
+            }
+        }
+
+        // Podczas trzymania E – ładowanie i aktualizacja slidera
+        if (Input.GetKey(throwKey) && isCharging)
+        {
+            chargeTimer += Time.deltaTime;
+            float chargeRatio = Mathf.Clamp01(chargeTimer / maxChargeTime);
+            if (throwSlider != null)
+            {
+                throwSlider.value = chargeRatio;
+            }
+        }
+
+        // Zwolnienie E – wykonanie rzutu lub przyciągnięcia
+        if (Input.GetKeyUp(throwKey))
+        {
+            if (isCharging && currentTorch != null)
+            {
+                float chargeRatio = Mathf.Clamp01(chargeTimer / maxChargeTime);
+                float appliedForce = Mathf.Lerp(minThrowForce, maxThrowForce, chargeRatio);
+
+                // Przywracamy fizykę pochodni i nadajemy jej prędkość
+                Rigidbody2D torchRb = currentTorch.GetComponent<Rigidbody2D>();
+                if (torchRb != null)
+                {
+                    torchRb.isKinematic = false;
+                    // Obliczenie kierunku rzutu – na podstawie pozycji myszy
+                    Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                    mousePos.z = spawnPoint.position.z;
+                    Vector2 throwDir = (mousePos - spawnPoint.position).normalized;
+
+                    torchRb.velocity = throwDir * appliedForce;
+                    // Rejestrujemy moment rzutu, by później zwiększyć prędkość przyciągania
+                    throwTime = Time.time;
+                }
+            }
+            else if (currentTorch != null)
+            {
+                // Jeśli pochodnia już istnieje (a nie jest ładowana), uruchamiamy przyciąganie
                 isReturning = true;
+            }
+            isCharging = false;
+            chargeTimer = 0f;
+            if (throwSlider != null)
+            {
+                throwSlider.value = 0f;
             }
         }
     }
 
-    // ------------------- C) Rzut pochodnią (pierwsze naciśnięcie E) ------------------- //
-    private void ThrowTorch()
-    {
-        if (torchPrefab == null || spawnPoint == null)
-        {
-            Debug.LogError("Brakuje TorchPrefab lub SpawnPoint w Inspektorze!");
-            return;
-        }
-
-        // Kierunek w stronę myszy (2D)
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        mousePos.z = spawnPoint.position.z;
-        Vector2 throwDir = (mousePos - spawnPoint.position).normalized;
-
-        // Tworzymy pochodnię
-        currentTorch = Instantiate(torchPrefab, spawnPoint.position, Quaternion.identity);
-
-        // Nadajemy jej prędkość
-        Rigidbody2D torchRb = currentTorch.GetComponent<Rigidbody2D>();
-        if (torchRb == null)
-        {
-            Debug.LogError("TorchPrefab nie ma Rigidbody2D!");
-            return;
-        }
-
-        torchRb.velocity = throwDir * throwForce;
-
-        // Nie przyciągamy jeszcze
-        isReturning = false;
-    }
-
-    // ------------------- D) Rysowanie liny (wizualnie) ------------------- //
+    // ------------------- C) Aktualizacja liny (wizualnie) ------------------- //
     private void UpdateLineRenderer()
     {
         if (lineRenderer == null) return;
