@@ -87,11 +87,13 @@ MonoBehaviour:
   maxThrowForce: 12
   maxChargeTime: 1.5
   throwKey: 101
-  lineRenderer: {fileID: 0}
+  lineRenderer: {fileID: 6396127107013344822}
   returnSpeed: 5
+  returnSpeedMultiplier: 3
   torchHoldButton: 324
-  holdTorchOffset: {x: 1, y: 0}
+  holdTorchOffset: {x: 0, y: 0}
   throwSlider: {fileID: 8013827890712490976}
+  playerMovementScript: {fileID: 5468299423421101558}
 --- !u!120 &6396127107013344822
 LineRenderer:
   serializedVersion: 2
@@ -498,6 +500,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 24
+  canMove: 1
 --- !u!50 &717086349050426048
 Rigidbody2D:
   serializedVersion: 4

@@ -27,7 +27,7 @@ Transform:
   m_GameObject: {fileID: 752218774203995738}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.486, y: -0.393, z: 0}
+  m_LocalPosition: {x: 0.486, y: -0.365, z: 0}
   m_LocalScale: {x: 0.026547322, y: 0.20609523, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -361,6 +361,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7086274064268614907}
   - component: {fileID: 2768938584620614110}
+  - component: {fileID: 8585867606390523199}
   - component: {fileID: 927177694776500802}
   m_Layer: 0
   m_Name: CheckPoint
@@ -441,6 +442,19 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &8585867606390523199
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1835287950935810689}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecabcd05e81a3b44aa30db4fe29e0722, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  roomGenerator: {fileID: 0}
 --- !u!61 &927177694776500802
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -762,7 +776,7 @@ Transform:
   m_GameObject: {fileID: 4297339991033944319}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.4866, y: -0.423, z: 0}
+  m_LocalPosition: {x: -0.4866, y: -0.36, z: 0}
   m_LocalScale: {x: 0.026547322, y: 0.20609523, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
