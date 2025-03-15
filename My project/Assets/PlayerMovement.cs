@@ -1,99 +1,139 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float moveSpeed = 5f;           // Prędkość ruchu poziomego
-    public float jumpForce = 10f;          // Siła skoku
-    public float verticalClimbSpeed = 3f;  // Prędkość wspinania się w górę
-    public LayerMask groundLayer;          // Warstwa dla podłoża
+    private float horizontal;
+    [SerializeField] private float speed = 8f;
+    [SerializeField] private float jumpForce = 16f;
+    private bool isFacingRight = true;
 
-    [HideInInspector]
-    public bool canMove = true;            // Flaga decydująca o możliwości ruchu
+    [SerializeField] private Rigidbody2D rb;
+    [SerializeField] private Transform groundCheck;
+    [SerializeField] private LayerMask groundLayer;
+
+    [SerializeField] private float dashSpeed = 20f;
+    [SerializeField] private float dashDuration = 0.2f;
+    [SerializeField] private float dashCooldown = 1f;
+    private float dashCooldownTimer = 0f;
+    private bool isDashing = false;
+
+    [SerializeField] private float gravityScale = 3f;
+    [SerializeField] private float increasedGravity = 10f;
+    private bool isPressingS = false;
+
+    private bool canDoubleJump = false;
+    private bool canJump = true;
+
+    public bool canMove = true;
 
     private Animator animator;
-    private Rigidbody2D rb;
-    private Collider2D playerCollider;     // Referencja do komponentu Collider2D
-    private bool isGrounded;               // Czy postać dotyka ziemi
-    private bool canClimb;                 // Czy postać może się wspinać
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
-        playerCollider = GetComponent<Collider2D>();
-
-        if (animator == null)
-        {
-            Debug.LogError("Nie znaleziono komponentu Animator!");
-        }
-        if (playerCollider == null)
-        {
-            Debug.LogError("Nie znaleziono komponentu Collider2D!");
-        }
     }
 
     void Update()
     {
-        // Jeśli gracz nie powinien się ruszać – zatrzymaj i zakończ Update
         if (!canMove)
         {
             rb.velocity = Vector2.zero;
             return;
         }
 
-        // Aktualizacja stanu "czy na ziemi"
-        isGrounded = CheckGrounded();
+        horizontal = Input.GetAxisRaw("Horizontal");
 
-        // Ruch poziomy
-        float horizontal = Input.GetAxis("Horizontal");
-        rb.velocity = new Vector2(horizontal * moveSpeed, rb.velocity.y);
+        if (IsGrounded())
+        {
+            canDoubleJump = true;
+        }
 
-        // Skok - działa, gdy gracz dotyka ziemi (groundLayer)
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        if (Input.GetButtonDown("Jump") && IsGrounded() && Mathf.Abs(rb.velocity.y) < 0.01f)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            canDoubleJump = true;
+        }
+        else if (Input.GetButtonDown("Jump") && !IsGrounded() && canDoubleJump)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            canDoubleJump = false;
         }
 
-        // Wspinanie (jeśli używasz drabiny)
-        if (canClimb)
+        if (Input.GetButtonUp("Jump") && rb.velocity.y > 0f)
         {
-            float vertical = Input.GetAxis("Vertical");
-            rb.velocity = new Vector2(rb.velocity.x, vertical * verticalClimbSpeed);
+            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
         }
 
-        // Aktualizacja animacji oraz obracanie postaci
-        if (horizontal > 0)
+        if (Input.GetKeyDown(KeyCode.LeftShift) && dashCooldownTimer <= 0f)
         {
-            animator.SetBool("MovingRight", true);
-            animator.SetBool("MovingLeft", false);
-            // Obracamy postać w prawo
-            transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+            StartCoroutine(Dash());
         }
-        else if (horizontal < 0)
+
+        if (dashCooldownTimer > 0f)
         {
-            animator.SetBool("MovingRight", false);
-            animator.SetBool("MovingLeft", true);
-            // Obracamy postać w lewo (flip)
-            transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+            dashCooldownTimer -= Time.deltaTime;
+        }
+
+        isPressingS = Input.GetKey(KeyCode.S);
+
+        Flip();
+        UpdateAnimations();
+    }
+
+    void FixedUpdate()
+    {
+        if (isPressingS)
+        {
+            rb.gravityScale = increasedGravity;
         }
         else
         {
-            animator.SetBool("MovingRight", false);
-            animator.SetBool("MovingLeft", false);
+            rb.gravityScale = gravityScale;
+        }
+
+        if (!isDashing && canMove)
+        {
+            rb.velocity = new Vector2(horizontal * speed, rb.velocity.y);
         }
     }
 
-    // Metoda sprawdzająca, czy gracz stoi na ziemi (groundLayer)
-    private bool CheckGrounded()
+    private bool IsGrounded()
     {
-        Vector2 position = (Vector2)transform.position - new Vector2(0, playerCollider.bounds.extents.y);
-        Vector2 direction = Vector2.down;
-        float distance = 0.1f; // Dystans promienia
+        return Physics2D.OverlapCircle(groundCheck.position, 0.2f, groundLayer);
+    }
 
-        Debug.DrawRay(position, direction * distance, Color.red);
-        RaycastHit2D hit = Physics2D.Raycast(position, direction, distance, groundLayer);
-        return hit.collider != null;
+    private void Flip()
+    {
+        if ((isFacingRight && horizontal < 0f) || (!isFacingRight && horizontal > 0f))
+        {
+            isFacingRight = !isFacingRight;
+            Vector3 localScale = transform.localScale;
+            localScale.x *= -1f;
+            transform.localScale = localScale;
+        }
+    }
+
+    private void UpdateAnimations()
+    {
+        animator.SetBool("MovingRight", horizontal > 0);
+        animator.SetBool("MovingLeft", horizontal < 0);
+        animator.SetBool("IsGrounded", IsGrounded());
+    }
+
+    private System.Collections.IEnumerator Dash()
+    {
+        isDashing = true;
+        dashCooldownTimer = dashCooldown;
+
+        float originalGravity = rb.gravityScale;
+        rb.gravityScale = 0f;
+
+        float dashDirection = isFacingRight ? 1f : -1f;
+        rb.velocity = new Vector2(dashDirection * dashSpeed, 0f);
+
+        yield return new WaitForSeconds(dashDuration);
+
+        rb.gravityScale = originalGravity;
+        isDashing = false;
     }
 }
