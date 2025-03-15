@@ -19,28 +19,26 @@ public class EnemyBehavior : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         if (rb != null) rb.freezeRotation = true;
 
-        if (player == null) Debug.LogWarning("⚠️ Player (gracz) nie znaleziony! Ustaw tag 'Player'.");
+        if (player == null) Debug.LogWarning("Player not found!");
     }
 
     void Update()
     {
-        // 🔥 SZUKAMY POCHODNI CO KAŻDĄ KLATKĘ (jeśli nie została znaleziona)
+        if (player == null) return;
+
         if (torch == null)
         {
             torch = GameObject.FindWithTag("Torch");
-            if (torch != null) Debug.Log("🔦 Pochodnia znaleziona!");
         }
 
-        if (player == null) return;
-
         float distanceToTorch = (torch != null) ? Vector3.Distance(transform.position, torch.transform.position) : Mathf.Infinity;
+        float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
         bool isInLight = (torch != null) && (distanceToTorch <= detectionRange);
 
         if (enemyMode == EnemyMode.ChaseWhenLit)
         {
             if (isInLight)
             {
-                Debug.Log("🔥 Wróg goni gracza, bo jest w świetle.");
                 MoveTowards(player.transform.position);
             }
         }
@@ -48,12 +46,10 @@ public class EnemyBehavior : MonoBehaviour
         {
             if (isInLight && distanceToTorch <= fleeRange)
             {
-                Debug.Log("🏃 Wróg ucieka, bo dotknął światła!");
                 MoveAway(torch.transform.position);
             }
-            else
+            else if (distanceToPlayer <= detectionRange)
             {
-                Debug.Log("👀 Wróg goni gracza.");
                 MoveTowards(player.transform.position);
             }
         }
@@ -75,13 +71,5 @@ public class EnemyBehavior : MonoBehaviour
             rb.MovePosition(transform.position + direction * speed * Time.deltaTime);
         else
             transform.position += direction * speed * Time.deltaTime;
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRange);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, fleeRange);
     }
 }
