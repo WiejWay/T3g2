@@ -6,7 +6,7 @@ using UnityEditor;
 
 public class ChangeScene : MonoBehaviour
 {
-    [SerializeField] private SceneAsset sceneAsset; // Wybór sceny w edytorze
+    [SerializeField] private SceneAsset sceneAsset; 
 
     public void LoadScene()
     {
