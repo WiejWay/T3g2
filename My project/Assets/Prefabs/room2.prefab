@@ -3301,18 +3301,6 @@ PrefabInstance:
     m_TransformParent: {fileID: 9093878591057290275}
     m_Modifications:
     - target: {fileID: 2149790417521492460, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.12116442
-      objectReference: {fileID: 0}
-    - target: {fileID: 2149790417521492460, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.22171104
-      objectReference: {fileID: 0}
-    - target: {fileID: 2149790417521492460, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 5.1028905
-      objectReference: {fileID: 0}
-    - target: {fileID: 2149790417521492460, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.22
       objectReference: {fileID: 0}
@@ -3356,30 +3344,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: WillageLampPilar
       objectReference: {fileID: 0}
-    - target: {fileID: 8148570258918685773, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
-      propertyPath: m_Color.b
-      value: 0.09803922
-      objectReference: {fileID: 0}
-    - target: {fileID: 8148570258918685773, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
-      propertyPath: m_Color.g
-      value: 0.6666667
-      objectReference: {fileID: 0}
-    - target: {fileID: 8148570258918685773, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
-      propertyPath: m_Materials.Array.data[0]
-      value: 
-      objectReference: {fileID: 2100000, guid: fc9776a20890ff4458eb3486b5753986, type: 2}
-    - target: {fileID: 8218732652584403691, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
-      propertyPath: m_Materials.Array.data[0]
-      value: 
-      objectReference: {fileID: 2100000, guid: fc9776a20890ff4458eb3486b5753986, type: 2}
-    - target: {fileID: 8945436878852785736, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
-      propertyPath: m_Materials.Array.data[0]
-      value: 
-      objectReference: {fileID: 2100000, guid: fc9776a20890ff4458eb3486b5753986, type: 2}
-    - target: {fileID: 9039414850945396534, guid: c0111725bb0355543a970d89b8f6889b, type: 3}
-      propertyPath: m_Materials.Array.data[0]
-      value: 
-      objectReference: {fileID: 2100000, guid: fc9776a20890ff4458eb3486b5753986, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

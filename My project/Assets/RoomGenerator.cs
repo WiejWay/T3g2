@@ -16,6 +16,9 @@ public class RoomGenerator : MonoBehaviour
 
     private GameObject lastRoom;             // Ostatnio wygenerowany pokój/checkpoint
     private int roomCount = 0;               // Licznik wygenerowanych pomieszczeń (pokojów + checkpointów)
+    
+    // Przechowuje prefab ostatnio użytego pokoju, żeby uniknąć powtórzeń
+    private GameObject previousRoomPrefab;
 
     void Start()
     {
@@ -126,6 +129,7 @@ public class RoomGenerator : MonoBehaviour
     /// <summary>
     /// Generuje kolejny zwykły pokój, ustawiając go na podstawie endpointu poprzedniego pokoju.
     /// Dla zwykłych pokoi offsetMultiplier wynosi 1.
+    /// Dodatkowo upewnia się, że nie zostanie wybrany ten sam prefabrykat co poprzednio.
     /// </summary>
     private void GenerateNextRoomMatchingEndpoint(string direction, Transform selectedEndpoint)
     {
@@ -136,6 +140,12 @@ public class RoomGenerator : MonoBehaviour
         {
             Debug.LogError($"Brak pokoju z StartPoint{direction} w dostępnych prefabach!");
             return;
+        }
+
+        // Jeśli dostępnych jest więcej niż jeden prefab, usuń ostatnio użyty prefab, by uniknąć powtórzeń.
+        if (previousRoomPrefab != null && matchingRooms.Count > 1)
+        {
+            matchingRooms = matchingRooms.FindAll(room => room != previousRoomPrefab);
         }
 
         GameObject newRoomPrefab = matchingRooms[Random.Range(0, matchingRooms.Count)];
@@ -156,6 +166,7 @@ public class RoomGenerator : MonoBehaviour
         Debug.Log($"Nowy pokój {newRoom.name} ustawiony na pozycji: {newRoom.transform.position}");
 
         lastRoom = newRoom;
+        previousRoomPrefab = newRoomPrefab;
         roomCount++;
     }
 
