@@ -461,7 +461,7 @@ MonoBehaviour:
   startRoom: {fileID: 8994753816203302549, guid: bec2ebf6b145a5f4c89eadd486260bfa, type: 3}
   finalRoomPrefab: {fileID: 1141364069}
   totalRooms: 5
-  checkpointIndices: 01000000
+  checkpointIndices: 03000000
 --- !u!4 &1467245681
 Transform:
   m_ObjectHideFlags: 0
