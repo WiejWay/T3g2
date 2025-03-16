@@ -63,7 +63,7 @@ Transform:
   m_GameObject: {fileID: 1270130985591695257}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.35, y: -2.93, z: 0}
+  m_LocalPosition: {x: 2.35, y: -6.1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -87,7 +87,7 @@ MonoBehaviour:
   maxThrowForce: 12
   maxChargeTime: 1.5
   throwKey: 101
-  lineRenderer: {fileID: 6396127107013344822}
+  lineRenderer: {fileID: 0}
   returnSpeed: 5
   returnSpeedMultiplier: 3
   torchHoldButton: 324
@@ -427,11 +427,11 @@ MonoBehaviour:
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
   m_Colors:
-    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_NormalColor: {r: 1, g: 0.67007554, b: 0.033018887, a: 1}
+    m_HighlightedColor: {r: 1, g: 0.67058825, b: 0.03137255, a: 1}
+    m_PressedColor: {r: 1, g: 0.67058825, b: 0.03137255, a: 1}
+    m_SelectedColor: {r: 1, g: 0.67058825, b: 0.03137255, a: 1}
+    m_DisabledColor: {r: 1, g: 0.67058825, b: 0.03137255, a: 0.5019608}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
@@ -489,7 +489,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 6.69, y: -0.06, z: 0}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
+  m_LocalScale: {x: 0.077489994, y: 0.077489994, z: 0.077489994}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2750189773326838941}
@@ -538,7 +538,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: -524987637
   m_SortingLayer: 1
-  m_SortingOrder: 0
+  m_SortingOrder: 30
   m_Sprite: {fileID: 21300000, guid: 640a6036e1aa56f4cb919c5a4df7e0a5, type: 2}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -562,19 +562,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b45d3e6915af7c46b65889fe70a9bf9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 8
-  jumpingPower: 16
+  speed: 6
+  jumpForce: 12
   rb: {fileID: 717086349050426048}
   groundCheck: {fileID: 1251148230055832170}
   groundLayer:
     serializedVersion: 2
-    m_Bits: 24
+    m_Bits: 16
   dashSpeed: 20
   dashDuration: 0.2
   dashCooldown: 1
-  coyoteTime: 0.2
+  gravityScale: 3
   increasedGravity: 10
-  normalGravity: 3
   canMove: 1
 --- !u!50 &717086349050426048
 Rigidbody2D:
@@ -610,7 +609,7 @@ CapsuleCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6328281223983356257}
-  m_Enabled: 0
+  m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -666,7 +665,7 @@ BoxCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6328281223983356257}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Density: 1
   m_Material: {fileID: 0}
   m_IncludeLayers:
@@ -762,7 +761,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.8382325, b: 0.4292453, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -807,7 +806,7 @@ Transform:
   m_GameObject: {fileID: 7505996918062696721}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.21, y: 0.72, z: -10}
+  m_LocalPosition: {x: 0.1, y: -0.2, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -848,7 +847,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 5
+  orthographic size: 4
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -974,7 +973,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.65705234, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -1049,7 +1048,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.4796099, b: 0, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1

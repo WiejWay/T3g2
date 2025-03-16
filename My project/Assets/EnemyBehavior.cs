@@ -72,4 +72,11 @@ public class EnemyBehavior : MonoBehaviour
         else
             transform.position += direction * speed * Time.deltaTime;
     }
+     private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            TeleportTrigger.TeleportPlayer(collision.gameObject);
+        }
+    }
 }

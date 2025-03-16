@@ -42,6 +42,9 @@ public class TorchThrow : MonoBehaviour
     // Zmienna do rejestrowania czasu rzutu
     private float throwTime = 0f;
 
+    // Maksymalna odległość pochodni od gracza, po której zacznie się automatyczny powrót
+    private float maxDistanceFromPlayer = 20f;
+
     void Start()
     {
         // Na starcie ukrywamy slider
@@ -70,6 +73,17 @@ public class TorchThrow : MonoBehaviour
             playerMovementScript.canMove = !isCharging;
         }
 
+        // Jeśli pochodnia istnieje i nie jest jeszcze w trybie powrotu,
+        // sprawdzamy, czy nie oddaliła się zbyt daleko od gracza
+        if (currentTorch != null && !isReturning)
+        {
+            float distanceFromPlayer = Vector2.Distance(currentTorch.transform.position, spawnPoint.position);
+            if (distanceFromPlayer >= maxDistanceFromPlayer)
+            {
+                isReturning = true;
+            }
+        }
+
         if (isReturning && currentTorch != null)
         {
             Rigidbody2D torchRb = currentTorch.GetComponent<Rigidbody2D>();
@@ -77,6 +91,23 @@ public class TorchThrow : MonoBehaviour
             {
                 Vector2 directionToPlayer = (spawnPoint.position - currentTorch.transform.position);
                 float distance = directionToPlayer.magnitude;
+
+                // Wyłączanie colliderów pochodni, gdy ta wraca
+                Collider2D mainCollider = currentTorch.GetComponent<Collider2D>();
+                if (mainCollider != null && mainCollider.enabled)
+                {
+                    mainCollider.enabled = false;
+                }
+                // Dodatkowo, jeśli pochodnia ma pod-obiekt "Circle" z dodatkowym colliderem:
+                Transform circleTransform = currentTorch.transform.Find("Circle");
+                if (circleTransform != null)
+                {
+                    BoxCollider2D circleCollider = circleTransform.GetComponent<BoxCollider2D>();
+                    if (circleCollider != null && circleCollider.enabled)
+                    {
+                        circleCollider.enabled = false;
+                    }
+                }
 
                 if (distance < 0.2f)
                 {
@@ -94,16 +125,6 @@ public class TorchThrow : MonoBehaviour
                     float currentReturnSpeed = returnSpeed + returnSpeedMultiplier * flightDuration;
                     Vector2 pullDir = directionToPlayer.normalized;
                     torchRb.velocity = pullDir * currentReturnSpeed;
-
-                    Transform squareTransform = currentTorch.transform.Find("Square");
-                    if (squareTransform != null)
-                    {
-                        BoxCollider2D squareCollider = squareTransform.GetComponent<BoxCollider2D>();
-                        if (squareCollider != null)
-                        {
-                            squareCollider.enabled = false;
-                        }
-                    }
                 }
             }
         }
