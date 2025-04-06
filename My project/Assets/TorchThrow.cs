@@ -1,255 +1,225 @@
 using UnityEngine;
-using UnityEngine.UI;  // Pamiętaj o dodaniu przestrzeni nazw dla UI
+using UnityEngine.UI;
+using TMPro;
+using System.Collections;
 
 public class TorchThrow : MonoBehaviour
 {
-    [Header("Ustawienia pochodni")]
-    [SerializeField] private GameObject torchPrefab;        // Prefab z Rigidbody2D
-    [SerializeField] private Transform spawnPoint;          // Miejsce w ręce gracza (punkt startowy)
-    [SerializeField] private float minThrowForce = 5f;        // Minimalna siła rzutu
-    [SerializeField] private float maxThrowForce = 20f;       // Maksymalna siła rzutu
-    [SerializeField] private float maxChargeTime = 2f;        // Czas ładowania by osiągnąć maxThrowForce
-    [SerializeField] private KeyCode throwKey = KeyCode.E;    // Klawisz do ładowania/rzutu oraz przyciągania
+    [Header("Pochodnia")]
+    [SerializeField] private GameObject torchPrefab;
+    [SerializeField] private Transform spawnPoint;
+    [SerializeField] private float minThrowForce = 5f;
+    [SerializeField] private float maxThrowForce = 20f;
+    [SerializeField] private float maxChargeTime = 2f;
 
-    [Header("Linia (wizualna)")]
-    [SerializeField] private LineRenderer lineRenderer;       // Do rysowania "linki"
+    [Header("Paliwo")]
+    [SerializeField] private float maxFuel = 100f;
+    [SerializeField] private float fuelRegenRate = 20f;
+    [SerializeField] private float fuelConsumptionRate = 20f;
+    [SerializeField] private float maxLightDuration = 5f; // 100 paliwa = 5s światła
+    [SerializeField] private float regenDelay = 1f;
 
-    [Header("Przyciąganie pochodni")]
-    [SerializeField] private float returnSpeed = 5f;          // Bazowa prędkość przyciągania
-    [SerializeField] private float returnSpeedMultiplier = 3f;  // Współczynnik zwiększania prędkości – im dłużej leci, tym większa prędkość
-
-    [Header("Trzymanie pochodni (PPM)")]
-    [SerializeField] private KeyCode torchHoldButton = KeyCode.Mouse1; // PPM
-    [SerializeField] private Vector2 holdTorchOffset = new Vector2(1f, 0f); // Offset w prawo
-
-    [Header("UI Slider")]
-    [SerializeField] private Slider throwSlider;              // Slider z Player > Canvas > Slider
-
-    [Header("Player Movement")]
-    [SerializeField] private PlayerMovement playerMovementScript; // Referencja do skryptu ruchu gracza
-
-    // ========================================
-    // ZMIENNE STANU
-    // ========================================
-    private GameObject currentTorch;    // Aktualnie wyrzucona lub ładowana pochodnia
-    private bool isReturning = false;   // Czy przyciągamy już pochodnię
-
-    private GameObject holdTorch;       // Pochodnia "w ręce" (przytrzymanie PPM)
-
-    // Zmienne związane z ładowaniem siły rzutu
-    private float chargeTimer = 0f;
+    private float currentFuel;
+    private bool canThrow = true;
     private bool isCharging = false;
-    // Zmienna do rejestrowania czasu rzutu
-    private float throwTime = 0f;
+    private float chargeTimer = 0f;
+    private GameObject activeTorch;
+    private bool isHolding = false;
+    private GameObject holdTorch;
+    private float regenTimer = 0f;
 
-    // Maksymalna odległość pochodni od gracza, po której zacznie się automatyczny powrót
-    private float maxDistanceFromPlayer = 20f;
+    [Header("Input")]
+    [SerializeField] private KeyCode throwKey = KeyCode.E;
+    [SerializeField] private KeyCode holdKey = KeyCode.Mouse1;
+
+    [Header("UI")]
+    [SerializeField] private TextMeshProUGUI fuelText;
+    [SerializeField] private Slider chargeSlider;
 
     void Start()
     {
-        // Na starcie ukrywamy slider
-        if (throwSlider != null)
+        currentFuel = maxFuel;
+        UpdateFuelUI();
+
+        if (chargeSlider != null)
         {
-            throwSlider.gameObject.SetActive(false);
+            chargeSlider.gameObject.SetActive(false);
+            chargeSlider.minValue = 0f;
+            chargeSlider.maxValue = 1f;
         }
     }
 
     void Update()
     {
-        // 1) Obsługa trzymania pochodni (PPM)
-        HandleRightMouseHold();
+        HandleThrowInput();
+        HandleHoldLight();
 
-        // 2) Obsługa ładowania, rzutu oraz przyciągania pochodni (klawisz E)
-        HandleTorchThrowAndReturn();
+        // Opóźniona regeneracja paliwa
+        if (!isHolding && activeTorch == null && regenTimer <= 0f && currentFuel < maxFuel)
+        {
+            currentFuel += fuelRegenRate * Time.deltaTime;
+            currentFuel = Mathf.Clamp(currentFuel, 0f, maxFuel);
+            UpdateFuelUI();
+        }
 
-        // 3) Aktualizacja wizualnej liny
-        UpdateLineRenderer();
+        if (regenTimer > 0f)
+            regenTimer -= Time.deltaTime;
     }
 
-    private void FixedUpdate()
+    void HandleThrowInput()
     {
-        if (playerMovementScript != null)
+        if (Input.GetKeyDown(throwKey) && canThrow && currentFuel >= 5f)
         {
-            playerMovementScript.canMove = !isCharging;
-        }
+            isCharging = true;
+            chargeTimer = 0f;
 
-        // Jeśli pochodnia istnieje i nie jest jeszcze w trybie powrotu,
-        // sprawdzamy, czy nie oddaliła się zbyt daleko od gracza
-        if (currentTorch != null && !isReturning)
-        {
-            float distanceFromPlayer = Vector2.Distance(currentTorch.transform.position, spawnPoint.position);
-            if (distanceFromPlayer >= maxDistanceFromPlayer)
+            if (chargeSlider != null)
             {
-                isReturning = true;
-            }
-        }
-
-        if (isReturning && currentTorch != null)
-        {
-            Rigidbody2D torchRb = currentTorch.GetComponent<Rigidbody2D>();
-            if (torchRb != null)
-            {
-                Vector2 directionToPlayer = (spawnPoint.position - currentTorch.transform.position);
-                float distance = directionToPlayer.magnitude;
-
-                // Wyłączanie colliderów pochodni, gdy ta wraca
-                Collider2D mainCollider = currentTorch.GetComponent<Collider2D>();
-                if (mainCollider != null && mainCollider.enabled)
-                {
-                    mainCollider.enabled = false;
-                }
-                // Dodatkowo, jeśli pochodnia ma pod-obiekt "Circle" z dodatkowym colliderem:
-                Transform circleTransform = currentTorch.transform.Find("Circle");
-                if (circleTransform != null)
-                {
-                    BoxCollider2D circleCollider = circleTransform.GetComponent<BoxCollider2D>();
-                    if (circleCollider != null && circleCollider.enabled)
-                    {
-                        circleCollider.enabled = false;
-                    }
-                }
-
-                if (distance < 0.2f)
-                {
-                    Destroy(currentTorch);
-                    currentTorch = null;
-                    isReturning = false;
-                    if (playerMovementScript != null)
-                    {
-                        playerMovementScript.canMove = true;
-                    }
-                }
-                else
-                {
-                    float flightDuration = Time.time - throwTime;
-                    float currentReturnSpeed = returnSpeed + returnSpeedMultiplier * flightDuration;
-                    Vector2 pullDir = directionToPlayer.normalized;
-                    torchRb.velocity = pullDir * currentReturnSpeed;
-                }
-            }
-        }
-    }
-
-    // ------------------- A) Trzymanie pochodni w ręce (PPM) ------------------- //
-    private void HandleRightMouseHold()
-    {
-        if (Input.GetKeyDown(torchHoldButton))
-        {
-            if (currentTorch != null) return;
-
-            if (holdTorch == null)
-            {
-                holdTorch = Instantiate(torchPrefab, spawnPoint.position, Quaternion.identity);
-                holdTorch.transform.parent = null;
-                Rigidbody2D rb = holdTorch.GetComponent<Rigidbody2D>();
-                if (rb != null) rb.isKinematic = true;
-                Collider2D col = holdTorch.GetComponent<Collider2D>();
-                if (col != null) col.enabled = false;
-            }
-        }
-
-        if (Input.GetKey(torchHoldButton))
-        {
-            if (holdTorch != null)
-            {
-                Vector2 basePos = spawnPoint.position;
-                holdTorch.transform.position = basePos + holdTorchOffset;
-            }
-        }
-
-        if (Input.GetKeyUp(torchHoldButton))
-        {
-            if (holdTorch != null)
-            {
-                Destroy(holdTorch);
-                holdTorch = null;
-            }
-        }
-    }
-
-    // ------------------- B) Ładowanie, rzut oraz przyciąganie pochodni (klawisz E) ------------------- //
-    private void HandleTorchThrowAndReturn()
-    {
-        if (Input.GetKeyDown(throwKey))
-        {
-            if (currentTorch != null)
-            {
-                // Jeśli pochodnia już istnieje, przytrzymanie E nie inicjuje ładowania
-            }
-            else
-            {
-                currentTorch = Instantiate(torchPrefab, spawnPoint.position, Quaternion.identity);
-                currentTorch.transform.parent = null;
-                Rigidbody2D torchRb = currentTorch.GetComponent<Rigidbody2D>();
-                if (torchRb != null)
-                {
-                    torchRb.isKinematic = true;
-                }
-                isCharging = true;
-                chargeTimer = 0f;
-                if (throwSlider != null)
-                {
-                    throwSlider.value = 0f;
-                    throwSlider.gameObject.SetActive(true); // Pokazujemy slider podczas ładowania
-                }
+                chargeSlider.value = 0f;
+                chargeSlider.gameObject.SetActive(true);
             }
         }
 
         if (Input.GetKey(throwKey) && isCharging)
         {
             chargeTimer += Time.deltaTime;
-            float chargeRatio = Mathf.Clamp01(chargeTimer / maxChargeTime);
-            if (throwSlider != null)
-            {
-                throwSlider.value = chargeRatio;
-            }
+            chargeTimer = Mathf.Clamp(chargeTimer, 0f, maxChargeTime);
+
+            if (chargeSlider != null)
+                chargeSlider.value = chargeTimer / maxChargeTime;
         }
 
-        if (Input.GetKeyUp(throwKey))
+        if (Input.GetKeyUp(throwKey) && isCharging)
         {
-            if (isCharging && currentTorch != null)
-            {
-                float chargeRatio = Mathf.Clamp01(chargeTimer / maxChargeTime);
-                float appliedForce = Mathf.Lerp(minThrowForce, maxThrowForce, chargeRatio);
-                Rigidbody2D torchRb = currentTorch.GetComponent<Rigidbody2D>();
-                if (torchRb != null)
-                {
-                    torchRb.isKinematic = false;
-                    Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                    mousePos.z = spawnPoint.position.z;
-                    Vector2 throwDir = (mousePos - spawnPoint.position).normalized;
-                    torchRb.velocity = throwDir * appliedForce;
-                    throwTime = Time.time;
-                }
-            }
-            else if (currentTorch != null)
-            {
-                isReturning = true;
-            }
             isCharging = false;
-            chargeTimer = 0f;
-            if (throwSlider != null)
-            {
-                throwSlider.value = 0f;
-                throwSlider.gameObject.SetActive(false); // Ukrywamy slider po zakończeniu ładowania/rzutu
-            }
+            if (chargeSlider != null) chargeSlider.gameObject.SetActive(false);
+
+            ThrowTorch();
         }
     }
 
-    // ------------------- C) Aktualizacja liny (wizualnie) ------------------- //
-    private void UpdateLineRenderer()
+    void ThrowTorch()
     {
-        if (lineRenderer == null) return;
+        float chargeRatio = Mathf.Clamp01(chargeTimer / maxChargeTime);
+        float appliedForce = Mathf.Lerp(minThrowForce, maxThrowForce, chargeRatio);
 
-        if (currentTorch != null)
+        float duration = currentFuel / (maxFuel / maxLightDuration);
+        if (duration <= 0f) return;
+
+        GameObject torch = Instantiate(torchPrefab, spawnPoint.position, Quaternion.identity);
+        activeTorch = torch;
+
+        Rigidbody2D rb = torch.GetComponent<Rigidbody2D>();
+        if (rb != null)
         {
-            lineRenderer.positionCount = 2;
-            lineRenderer.SetPosition(0, spawnPoint.position);
-            lineRenderer.SetPosition(1, currentTorch.transform.position);
+            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mousePos.z = spawnPoint.position.z;
+            Vector2 dir = (mousePos - spawnPoint.position).normalized;
+            rb.velocity = dir * appliedForce;
         }
-        else
+
+        // 🎯 Wskaźnik czasu życia na prefabie pochodni
+        Slider torchSlider = torch.GetComponentInChildren<Slider>(true);
+        if (torchSlider != null)
         {
-            lineRenderer.positionCount = 0;
+            torchSlider.gameObject.SetActive(true);
+            StartCoroutine(UpdateTorchSlider(torchSlider, duration));
+        }
+
+        currentFuel = 0f;
+        UpdateFuelUI();
+        canThrow = false;
+        regenTimer = regenDelay;
+
+        StartCoroutine(TorchLifetime(torch, duration));
+    }
+
+    IEnumerator TorchLifetime(GameObject torch, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+
+        if (torch != null)
+        {
+            float shrinkTime = 0.5f;
+            float timer = 0f;
+            Vector3 originalScale = torch.transform.localScale;
+
+            while (timer < shrinkTime)
+            {
+                torch.transform.localScale = Vector3.Lerp(originalScale, Vector3.zero, timer / shrinkTime);
+                timer += Time.deltaTime;
+                yield return null;
+            }
+
+            Destroy(torch);
+            activeTorch = null;
+            canThrow = true;
+        }
+
+        regenTimer = regenDelay;
+    }
+
+    IEnumerator UpdateTorchSlider(Slider slider, float duration)
+    {
+        float timer = 0f;
+        slider.maxValue = duration;
+        slider.value = duration;
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;
+            slider.value = duration - timer;
+            yield return null;
+        }
+    }
+
+    void HandleHoldLight()
+    {
+        if (Input.GetKeyDown(holdKey))
+        {
+            if (holdTorch == null && currentFuel > 0f)
+            {
+                holdTorch = Instantiate(torchPrefab, spawnPoint.position, Quaternion.identity);
+                Rigidbody2D rb = holdTorch.GetComponent<Rigidbody2D>();
+                if (rb != null) rb.isKinematic = true;
+
+                Collider2D col = holdTorch.GetComponent<Collider2D>();
+                if (col != null) col.enabled = false;
+
+                isHolding = true;
+            }
+        }
+
+        if (Input.GetKey(holdKey) && isHolding && currentFuel > 0f)
+        {
+            holdTorch.transform.position = spawnPoint.position;
+            currentFuel -= fuelConsumptionRate * Time.deltaTime;
+            currentFuel = Mathf.Clamp(currentFuel, 0f, maxFuel);
+            UpdateFuelUI();
+
+            if (currentFuel <= 0f)
+            {
+                Destroy(holdTorch);
+                isHolding = false;
+                regenTimer = regenDelay;
+            }
+        }
+
+        if (Input.GetKeyUp(holdKey) && isHolding)
+        {
+            if (holdTorch != null)
+                Destroy(holdTorch);
+
+            isHolding = false;
+            regenTimer = regenDelay;
+        }
+    }
+
+    void UpdateFuelUI()
+    {
+        if (fuelText != null)
+        {
+            fuelText.text = $"Paliwo: {Mathf.FloorToInt(currentFuel)}";
         }
     }
 }
