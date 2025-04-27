@@ -483,9 +483,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1644034439}
+      - m_Target: {fileID: 102900000, guid: 8c9cfa26abfee488c85f1582747f6a02, type: 3}
         m_TargetAssemblyTypeName: ChangeScene, Assembly-CSharp
-        m_MethodName: LoadScene
+        m_MethodName: 
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -666,10 +666,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1644034437}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fd96a7249510b5543a51c86e59ee4400, type: 3}
+  m_Script: {fileID: 11500000, guid: 3dd4c17ffd5563d41a4a098e91746bed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sceneAsset: {fileID: 102900000, guid: 8c9cfa26abfee488c85f1582747f6a02, type: 3}
+  sceneToLoad: Scena1t
 --- !u!1 &2087936330
 GameObject:
   m_ObjectHideFlags: 0
