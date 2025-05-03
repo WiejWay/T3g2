@@ -14,10 +14,10 @@ public class TorchThrow : MonoBehaviour
 
     [Header("Paliwo")]
     [SerializeField] private float maxFuel = 100f;
-    [SerializeField] private float fuelRegenRate = 20f;
+    [SerializeField] private float fuelRegenRate = 60f;
     [SerializeField] private float fuelConsumptionRate = 20f;
     [SerializeField] private float maxLightDuration = 5f;
-    [SerializeField] private float regenDelay = 3f;
+    [SerializeField] private float regenDelay = 2f;
 
     private float currentFuel;
     private bool canThrow = true;
