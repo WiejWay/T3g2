@@ -1,41 +1,15 @@
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-public class ChangeEndScene : MonoBehaviour
+public class ChangeSceneOnTrigger : MonoBehaviour
 {
-    public Dropdown sceneDropdown;
-    public List<string> sceneNames;
+    public int sceneIndexToLoad;
 
-  void Start()
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (sceneDropdown == null)
+        if (other.CompareTag("Player"))
         {
-            Debug.LogError("Dropdown reference is missing!");
-            return;
-        }
-
-        PopulateDropdown();
-    }
-
-    void PopulateDropdown()
-    {
-        sceneDropdown.ClearOptions();
-        sceneDropdown.AddOptions(sceneNames);
-    }
-
-    public void LoadSelectedScene()
-    {
-        string selectedScene = sceneNames[sceneDropdown.value];
-
-        if (!string.IsNullOrEmpty(selectedScene))
-        {
-            SceneManager.LoadScene(selectedScene);
-        }
-        else
-        {
-            Debug.LogWarning("Selected scene name is empty!");
+            SceneManager.LoadScene(sceneIndexToLoad);
         }
     }
 }

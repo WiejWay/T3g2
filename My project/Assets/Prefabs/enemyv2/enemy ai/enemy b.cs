@@ -3,69 +3,64 @@ using UnityEngine;
 public class EnemyChaseButFleeFromLight : MonoBehaviour
 {
     public float speed = 3f;
-    public float detectionRange = 5f; // Zasiêg wykrycia gracza
-    public float fleeRange = 2f;      // Zasiêg ucieczki od pochodni
+    public float detectionRange = 5f;
+    public float fleeRange = 2f;
 
     private GameObject torch;
     private GameObject player;
-    private Rigidbody rb;
+    private Rigidbody2D rb;
+    private Animator animator;
 
     void Start()
     {
         player = GameObject.FindWithTag("Player");
-        rb = GetComponent<Rigidbody>();
-        if (rb != null) rb.freezeRotation = true;
-
-        if (player == null) Debug.LogWarning("Player not found!");
+        rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
     }
 
     void Update()
     {
         if (player == null) return;
+        if (torch == null) torch = GameObject.FindWithTag("Torch");
 
-        if (torch == null)
+        float distTorch = torch != null ? Vector3.Distance(transform.position, torch.transform.position) : Mathf.Infinity;
+        float distPlayer = Vector3.Distance(transform.position, player.transform.position);
+        bool isMoving = false;
+        Vector2 vel = rb.velocity;
+
+        if (torch != null && distTorch <= fleeRange)
         {
-            torch = GameObject.FindWithTag("Torch");
+            Vector2 dir = ((Vector2)transform.position - (Vector2)torch.transform.position).normalized;
+            vel.x = dir.x * speed;
+            isMoving = true;
         }
-
-        float distanceToTorch = (torch != null) ? Vector3.Distance(transform.position, torch.transform.position) : Mathf.Infinity;
-        float distanceToPlayer = Vector3.Distance(transform.position, player.transform.position);
-
-        // Ucieka, jeœli jest zbyt blisko pochodni
-        if (torch != null && distanceToTorch <= fleeRange)
+        else if (distPlayer <= detectionRange)
         {
-            MoveAway(torch.transform.position);
+            Vector2 dir = ((Vector2)player.transform.position - (Vector2)transform.position).normalized;
+            vel.x = dir.x * speed;
+            isMoving = true;
         }
-        // Inaczej – goni gracza, jeœli ten jest w zasiêgu wykrycia
-        else if (distanceToPlayer <= detectionRange)
-        {
-            MoveTowards(player.transform.position);
-        }
-    }
-
-    void MoveTowards(Vector3 target)
-    {
-        Vector3 direction = (target - transform.position).normalized;
-        if (rb != null)
-            rb.MovePosition(transform.position + direction * speed * Time.deltaTime);
         else
-            transform.position += direction * speed * Time.deltaTime;
-    }
-
-    void MoveAway(Vector3 target)
-    {
-        Vector3 direction = (transform.position - target).normalized;
-        if (rb != null)
-            rb.MovePosition(transform.position + direction * speed * Time.deltaTime);
-        else
-            transform.position += direction * speed * Time.deltaTime;
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Player"))
         {
-            TeleportTrigger.TeleportPlayer(collision.gameObject);
+            vel.x = 0;
         }
+
+        rb.velocity = new Vector2(vel.x, vel.y);
+
+        if (animator != null)
+            animator.SetBool("isMoving", isMoving);
+
+        if (vel.x != 0)
+        {
+            Vector3 scale = transform.localScale;
+            scale.x = Mathf.Abs(scale.x) * (vel.x > 0 ? 1 : -1);
+            transform.localScale = scale;
+        }
+    }
+
+    void OnCollisionEnter2D(Collision2D c)
+    {
+        if (c.gameObject.CompareTag("Player"))
+            TeleportTrigger.TeleportPlayer(c.gameObject);
     }
 }
