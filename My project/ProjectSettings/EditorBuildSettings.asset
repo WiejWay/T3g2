@@ -17,4 +17,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/setings.unity
     guid: 7561b2fb01d3f8e4abb6b7e9b12918fc
+  - enabled: 1
+    path: Assets/Scenes/prolog.unity
+    guid: 09e4c1476940a4546bef43e828e6a850
   m_configObjects: {}
