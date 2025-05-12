@@ -2,49 +2,76 @@ using UnityEngine;
 
 public class EnemyChaseWhenPlayerIsLit : MonoBehaviour
 {
-    public float speed = 3f;
+    [Header("Movement")]
+    public float speed = 5f;
+    [Tooltip("Minimalna prêdkoœæ pozioma, przy której uznajemy, ¿e wróg siê porusza")]
+    public float moveThreshold = 0.01f;
+
+    [Header("Detection")]
     public float detectionRange = 5f;
     public float visionRange = 10f;
 
     private GameObject torch;
     private GameObject player;
-    private Rigidbody rb;
+    private Rigidbody2D rb;
     private Animator animator;
+    private SpriteRenderer spriteRenderer;
+    private bool shouldChase;
 
     void Start()
     {
-        player = GameObject.FindWithTag("Player");
-        rb = GetComponent<Rigidbody>();
+        rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
-        if (rb != null) rb.freezeRotation = true;
+        spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     void Update()
     {
-        if (player == null) return;
-        if (torch == null) torch = GameObject.FindWithTag("Torch");
-        if (torch == null) return;
+        // 1) Znajduj gracza i pochodniê, jeœli jeszcze nie masz
+        if (player == null)
+            player = GameObject.FindWithTag("Player");
+        if (torch == null)
+            torch = GameObject.FindWithTag("Torch");
 
-        float dPT = Vector3.Distance(player.transform.position, torch.transform.position);
-        float dEP = Vector3.Distance(transform.position, player.transform.position);
+        if (player == null || torch == null)
+        {
+            shouldChase = false;
+            animator?.SetBool("isMoving", false);
+            return;
+        }
 
-        if (dPT <= detectionRange && dEP <= visionRange)
-            MoveTowards(player.transform.position);
-        else if (animator != null)
-            animator.SetBool("isMoving", false);
+        // 2) Detekcja: gracz blisko pochodni i w zasiêgu widzenia
+        float dPT = Vector2.Distance(player.transform.position, torch.transform.position);
+        float dEP = Vector2.Distance(transform.position, player.transform.position);
+        shouldChase = (dPT <= detectionRange && dEP <= visionRange);
+
+        // 3) Animacja: opieramy siê na faktycznej prêdkoœci poziomej
+        float vx = rb.velocity.x;
+        bool moving = Mathf.Abs(vx) > moveThreshold;
+        animator.SetBool("isMoving", moving);
+
+        // 4) Flip sprite'a w zale¿noœci od kierunku ruchu
+        if (vx > moveThreshold)
+            spriteRenderer.flipX = false; // patrzy w prawo
+        else if (vx < -moveThreshold)
+            spriteRenderer.flipX = true;  // patrzy w lewo
     }
 
-    void MoveTowards(Vector3 target)
+    void FixedUpdate()
     {
-        Vector3 dir = (target - transform.position).normalized;
-        bool moving = dir.sqrMagnitude > 0.001f;
-        if (animator != null) animator.SetBool("isMoving", moving);
-        if (!moving) return;
+        if (player == null) return;
 
-        transform.right = dir;
-        Vector3 step = dir * speed * Time.deltaTime;
-        if (rb != null) rb.MovePosition(transform.position + step);
-        else transform.position += step;
+        if (shouldChase)
+        {
+            // Ruch fizyki: tylko oœ X, oœ Y zostawiamy grawitacji
+            Vector2 dir = ((Vector2)player.transform.position - rb.position).normalized;
+            rb.velocity = new Vector2(dir.x * speed, rb.velocity.y);
+        }
+        else
+        {
+            // Zerujemy prêdkoœæ poziom¹ – dziêki temu velocity.x == 0
+            rb.velocity = new Vector2(0f, rb.velocity.y);
+        }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
